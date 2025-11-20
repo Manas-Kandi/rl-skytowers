@@ -1,12 +1,16 @@
 import React from 'react';
 
-const Controls = ({ onReset, mode, setMode }) => {
+const Controls = ({ onReset, mode, onStartTraining, onStopTraining }) => {
     return (
         <div className="controls">
-            <button onClick={onReset}>Reset Game</button>
-            {/* <button onClick={() => setMode(mode === 'play' ? 'watch' : 'play')}>
-        Mode: {mode === 'play' ? 'Play vs AI' : 'Watch Training'}
-      </button> */}
+            {mode === 'play' ? (
+                <>
+                    <button onClick={onReset}>Reset Game</button>
+                    <button onClick={onStartTraining} style={{ marginLeft: '10px' }}>Start Training</button>
+                </>
+            ) : (
+                <button onClick={onStopTraining} style={{ background: '#ff4444' }}>Stop Watching</button>
+            )}
         </div>
     );
 };
