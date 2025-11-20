@@ -1,0 +1,59 @@
+# SkyTowers Configuration
+
+# Game Settings
+game:
+  board_size: 5
+  max_steps: 100
+  winning_level: 3
+
+# MCTS Settings
+mcts:
+  num_simulations: 25
+  cpuct: 1.0
+  temperature_threshold: 10  # Steps before switching to greedy
+
+# Model Settings
+model:
+  board_size: 5
+  input_channels: 4
+  action_size: 64
+  conv_channels: 64
+  value_hidden_size: 64
+
+# Training Settings
+training:
+  num_episodes: 5
+  learning_rate: 0.001
+  batch_size: 64
+  epochs_per_batch: 5
+  replay_buffer_size: 10000
+  
+# Device Settings
+device:
+  use_gpu: true  # Will auto-detect MPS on Apple Silicon
+  device_type: "auto"  # "auto", "cpu", "cuda", "mps"
+
+# Checkpoint Settings
+checkpoint:
+  directory: "./checkpoints"
+  save_interval: 1  # Save every N episodes
+  keep_best_only: true
+
+# Logging Settings
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "skytowers.log"
+
+# Server Settings
+server:
+  host: "0.0.0.0"
+  port: 8000
+  reload: true
+  workers: 1
+
+# Frontend Settings
+frontend:
+  api_url: "http://localhost:8000"
+  ws_url: "ws://localhost:8000/ws/training"
+  poll_interval: 1000  # milliseconds

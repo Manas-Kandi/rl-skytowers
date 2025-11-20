@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import GameScene from './components/GameScene';
 import Controls from './components/Controls';
+import HistoryLog from './components/HistoryLog';
 import axios from 'axios';
 import './index.css';
-
-import HistoryLog from './components/HistoryLog';
 
 const API_URL = 'http://localhost:8000';
 const WS_URL = 'ws://localhost:8000/ws/training';

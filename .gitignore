@@ -1,3 +1,4 @@
+# Python
 __pycache__/
 *.pyc
 *.pyo
@@ -6,7 +7,42 @@ __pycache__/
 env/
 venv/
 .env
-.DS_Store
+*.egg-info/
+dist/
+build/
+
+# IDE
 .idea/
 .vscode/
 *.swp
+*.swo
+*~
+.DS_Store
+
+# Frontend
+node_modules/
+dist/
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Model checkpoints (optional - uncomment to track)
+# checkpoints/
+*.pth
+*.pth.tar
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Temporary files
+*.tmp
+*.bak

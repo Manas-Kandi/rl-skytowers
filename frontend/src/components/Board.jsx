@@ -7,36 +7,78 @@ const Cell = ({ r, c, height, onClick, isP1, isP2, isSelected, isTarget }) => {
     // Height 4: Dome
 
     const blocks = [];
+    const blockColors = ["#e8e8e8", "#d0d0d0", "#a0a0ff", "#6060ff"];
+    
     for (let i = 0; i < height && i < 4; i++) {
         blocks.push(
             <mesh key={i} position={[0, i * 0.2 + 0.1, 0]} castShadow receiveShadow>
-                <boxGeometry args={[0.9, 0.2, 0.9]} />
-                <meshStandardMaterial color={i === 3 ? "blue" : "white"} />
+                <boxGeometry args={[0.88, 0.19, 0.88]} />
+                <meshStandardMaterial 
+                    color={blockColors[i]} 
+                    metalness={0.3}
+                    roughness={0.7}
+                />
             </mesh>
         );
     }
 
+    // Dome (height 4)
+    if (height >= 4) {
+        blocks.push(
+            <mesh key="dome" position={[0, 0.8 + 0.1, 0]} castShadow receiveShadow>
+                <sphereGeometry args={[0.45, 16, 16]} />
+                <meshStandardMaterial 
+                    color="#6060ff" 
+                    metalness={0.6}
+                    roughness={0.4}
+                    emissive="#3030ff"
+                    emissiveIntensity={0.2}
+                />
+            </mesh>
+        );
+    }
+
+    const baseColor = isSelected ? "#ffff00" : isTarget ? "#ff8800" : "#555555";
+
     return (
         <group position={[r - 2, 0, c - 2]} onClick={(e) => { e.stopPropagation(); onClick(r, c); }}>
             {/* Base Grid */}
-            <mesh position={[0, -0.05, 0]}>
+            <mesh position={[0, -0.05, 0]} receiveShadow>
                 <boxGeometry args={[0.95, 0.1, 0.95]} />
-                <meshStandardMaterial color={isSelected ? "yellow" : isTarget ? "orange" : "#444"} />
+                <meshStandardMaterial 
+                    color={baseColor}
+                    metalness={0.2}
+                    roughness={0.8}
+                    emissive={isSelected ? "#ffff00" : "#000000"}
+                    emissiveIntensity={isSelected ? 0.3 : 0}
+                />
             </mesh>
 
             {blocks}
 
             {/* Players */}
             {isP1 && (
-                <mesh position={[0, height * 0.2 + 0.3, 0]}>
-                    <sphereGeometry args={[0.25, 32, 32]} />
-                    <meshStandardMaterial color="#00ff88" />
+                <mesh position={[0, height * 0.2 + 0.35, 0]} castShadow>
+                    <sphereGeometry args={[0.22, 32, 32]} />
+                    <meshStandardMaterial 
+                        color="#00ff88" 
+                        metalness={0.5}
+                        roughness={0.3}
+                        emissive="#00ff88"
+                        emissiveIntensity={0.3}
+                    />
                 </mesh>
             )}
             {isP2 && (
-                <mesh position={[0, height * 0.2 + 0.3, 0]}>
-                    <sphereGeometry args={[0.25, 32, 32]} />
-                    <meshStandardMaterial color="#ff0055" />
+                <mesh position={[0, height * 0.2 + 0.35, 0]} castShadow>
+                    <sphereGeometry args={[0.22, 32, 32]} />
+                    <meshStandardMaterial 
+                        color="#ff0055" 
+                        metalness={0.5}
+                        roughness={0.3}
+                        emissive="#ff0055"
+                        emissiveIntensity={0.3}
+                    />
                 </mesh>
             )}
         </group>
