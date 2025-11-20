@@ -15,10 +15,11 @@ import time
 
 
 class Trainer:
-    def __init__(self):
+    def __init__(self, callback=None):
         self.args = Args()
         self.game = SkyTowersGame() # Template game
         self.model = SkyNet()
+        self.callback = callback
         
         if self.args.cuda:
             self.model = self.model.to('mps')
@@ -65,6 +66,21 @@ class Trainer:
             build_pos = (move_pos[0] + b_dr, move_pos[1] + b_dc)
             
             r = game.step((move_pos, build_pos))
+            
+            if self.callback:
+                self.callback({
+                    "board": game.board.tolist(),
+                    "p1_pos": game.p1_pos,
+                    "p2_pos": game.p2_pos,
+                    "current_player": game.current_player,
+                    "winner": game.winner,
+                    "last_move": {
+                        "move": (move_pos[0], move_pos[1]),
+                        "build": (build_pos[0], build_pos[1])
+                    },
+                    "step": step
+                })
+                time.sleep(0.5) # Slow down for visualization
             
             if r is not None: # Game ended
                 return [(x[0], x[2], r * ((-1) ** (x[1] != game.current_player))) for x in train_examples]

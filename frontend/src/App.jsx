@@ -6,14 +6,20 @@ import Controls from './components/Controls';
 import axios from 'axios';
 import './index.css';
 
+import HistoryLog from './components/HistoryLog';
+
 const API_URL = 'http://localhost:8000';
+const WS_URL = 'ws://localhost:8000/ws/training';
 
 function App() {
     const [gameState, setGameState] = useState(null);
-    const [mode, setMode] = useState('play'); // 'play' or 'watch'
+    const [mode, setMode] = useState('play'); // 'play' or 'train'
     const [message, setMessage] = useState('Welcome to SkyTowers');
+    const [history, setHistory] = useState([]);
+    const ws = useRef(null);
 
     const fetchState = async () => {
+        if (mode === 'train') return; // Don't poll in train mode
         try {
             const res = await axios.get(`${API_URL}/game/state`);
             setGameState(res.data);
@@ -29,9 +35,44 @@ function App() {
         fetchState();
         const interval = setInterval(fetchState, 1000); // Poll every second
         return () => clearInterval(interval);
-    }, []);
+    }, [mode]);
+
+    const startTraining = async () => {
+        setMode('train');
+        setHistory([]);
+        setMessage("Training Started...");
+
+        // Connect WS
+        ws.current = new WebSocket(WS_URL);
+        ws.current.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            setGameState(data);
+            if (data.last_move) {
+                setHistory(prev => [...prev, {
+                    player: data.current_player * -1, // The player who JUST moved
+                    move: data.last_move.move,
+                    build: data.last_move.build
+                }]);
+            }
+            if (data.winner !== null) {
+                setMessage(`Episode Finished. Winner: ${data.winner}`);
+                // Clear history after a delay or keep it? Keep it.
+            } else {
+                setMessage(`Training Episode... Step ${data.step}`);
+            }
+        };
+
+        await axios.post(`${API_URL}/training/start`);
+    };
+
+    const stopTraining = () => {
+        setMode('play');
+        if (ws.current) ws.current.close();
+        fetchState();
+    };
 
     const handleMove = async (move) => {
+        if (mode === 'train') return;
         try {
             const res = await axios.post(`${API_URL}/game/move`, move);
             if (res.data.winner !== null) {
@@ -47,6 +88,7 @@ function App() {
     const handleReset = async () => {
         await axios.post(`${API_URL}/game/reset`);
         setMessage("Game Reset");
+        setHistory([]);
         fetchState();
     };
 
@@ -55,7 +97,13 @@ function App() {
             <div className="ui-layer">
                 <h1>SkyTowers</h1>
                 <div className="status-bar">{message}</div>
-                <Controls onReset={handleReset} mode={mode} setMode={setMode} />
+                <Controls
+                    onReset={handleReset}
+                    mode={mode}
+                    onStartTraining={startTraining}
+                    onStopTraining={stopTraining}
+                />
+                {mode === 'train' && <HistoryLog history={history} />}
             </div>
             <div className="canvas-container">
                 <Canvas camera={{ position: [8, 8, 8], fov: 50 }}>

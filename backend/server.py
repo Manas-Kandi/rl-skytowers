@@ -1,13 +1,38 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import torch
 import numpy as np
+import asyncio
+import json
 from .game import SkyTowersGame
 from .model import SkyNet
 from .mcts import MCTS, Args
+from .trainer import Trainer
 
 app = FastAPI()
+
+# Store connected clients
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: dict):
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except:
+                pass
+
+manager = ConnectionManager()
+training_active = False
 
 app.add_middleware(
     CORSMiddleware,
@@ -104,8 +129,90 @@ def make_move(move: MoveRequest):
         
     return {"player_move": action, "winner": game.winner}
 
-@app.get("/training/start")
+@app.websocket("/ws/training")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text() # Keep connection alive
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
+def training_callback(state):
+    # This runs in the training thread. We need to broadcast to websocket.
+    # Since broadcast is async, we need to run it in the event loop.
+    # But we are in a sync thread.
+    # Simple hack: use asyncio.run or run_coroutine_threadsafe if we had access to the loop.
+    # Better: Just put it in a queue or similar?
+    # For simplicity in this MVP, let's try to use the loop.
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+    # Actually, getting the running loop from a separate thread is hard.
+    # Let's just use a global queue or variable, and have a background task in FastAPI poll it?
+    # Or simpler: Use `asyncio.run` to send a single message? No, that creates a new loop.
+    # Correct way: Use `run_coroutine_threadsafe`.
+    pass
+
+# Let's redefine the callback to be simpler.
+# We will run training in a background task using FastAPI's BackgroundTasks?
+# No, training is blocking. We should run it in a separate thread.
+import threading
+
+def run_training():
+    global training_active
+    training_active = True
+    
+    # Helper to broadcast from thread
+    def callback(state):
+        asyncio.run(manager.broadcast(state)) 
+        # Warning: asyncio.run creates a new loop. 
+        # If manager.broadcast uses objects bound to the main loop, it might fail.
+        # But here it just sends on sockets. Sockets are bound to main loop.
+        # This will likely fail.
+        
+    # Better approach:
+    # The callback updates a global "latest_state".
+    # A background asyncio task broadcasts "latest_state" every X ms.
+    
+    global latest_training_state
+    def callback_safe(state):
+        global latest_training_state
+        latest_training_state = state
+        
+    trainer = Trainer(callback=callback_safe)
+    trainer.learn()
+    training_active = False
+
+latest_training_state = None
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(broadcast_loop())
+
+async def broadcast_loop():
+    global latest_training_state
+    last_sent = None
+    while True:
+        if latest_training_state and latest_training_state != last_sent:
+            await manager.broadcast(latest_training_state)
+            last_sent = latest_training_state
+        await asyncio.sleep(0.1)
+
+@app.post("/training/start")
 def start_training():
-    # Trigger a training episode in background? 
-    # For now, let's just say we can run the trainer.py separately
-    return {"message": "Run 'python backend/trainer.py' to train"}
+    global training_active
+    if training_active:
+        return {"message": "Training already in progress"}
+    
+    thread = threading.Thread(target=run_training)
+    thread.start()
+    return {"message": "Training started"}
+
+@app.post("/training/stop")
+def stop_training():
+    # Not easily stoppable without flags in Trainer, but for now we just let it finish
+    return {"message": "Stop not implemented yet"}
