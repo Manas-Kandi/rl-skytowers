@@ -8,10 +8,10 @@ import json
 import logging
 import threading
 import os
-from .game import SkyTowersGame
-from .model import SkyNet
-from .mcts import MCTS, Args
-from .trainer import Trainer
+from game import SkyTowersGame
+from model import SkyNet
+from mcts import MCTS, Args
+from trainer import Trainer
 
 # Configure logging
 logging.basicConfig(
