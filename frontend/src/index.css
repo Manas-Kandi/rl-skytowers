@@ -405,6 +405,92 @@ button:active {
     }
 }
 
+/* Learning Metrics Panel */
+.metrics-panel {
+    margin-top: 32px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    backdrop-filter: blur(20px);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.metric-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.metric-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1;
+}
+
+.loss-trend {
+    margin-top: 24px;
+    padding: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    backdrop-filter: blur(20px);
+}
+
+.trend-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    font-weight: 500;
+    display: block;
+    margin-bottom: 16px;
+}
+
+.trend-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 60px;
+}
+
+.trend-bar {
+    flex: 1;
+    background: linear-gradient(to top, var(--accent), rgba(109, 213, 237, 0.3));
+    border-radius: 2px;
+    min-height: 4px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.trend-bar:hover {
+    background: var(--accent);
+    transform: scaleY(1.1);
+}
+
 @media (max-width: 640px) {
     .info-panel {
         padding: 24px 20px;
@@ -416,5 +502,9 @@ button:active {
 
     button {
         width: 100%;
+    }
+    
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
 }

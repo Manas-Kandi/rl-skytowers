@@ -60,6 +60,7 @@ const GameScene = ({ gameState, onMove }) => {
                 p2_pos={gameState.p2_pos}
                 onCellClick={handleCellClick}
                 selectedPos={selectedPos}
+                winner={gameState.winner}
             />
         </group>
     );

@@ -48,6 +48,12 @@ class Trainer:
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.args.lr)
         self.mcts = MCTS(self.game, self.model, self.args)
         
+        # Learning metrics
+        self.loss_history = []
+        self.win_history = []  # 1 for P1 win, -1 for P2 win
+        self.episode_lengths = []
+        self.elo_rating = 1500  # Starting ELO
+        
         # Create checkpoint directory
         if not os.path.exists(self.args.checkpoint_dir):
             os.makedirs(self.args.checkpoint_dir)
@@ -77,6 +83,10 @@ class Trainer:
             if game_ended != 0:
                 final_value = game_ended
                 logger.info(f"Episode ended after {step} steps. Winner: {final_value}")
+                
+                # Track metrics
+                self.win_history.append(final_value)
+                self.episode_lengths.append(step)
                 
                 # Assign final value to all states
                 return [(x[0], x[2], final_value * ((-1) ** (x[1] != game.current_player))) 
@@ -200,9 +210,35 @@ class Trainer:
             
             avg_loss = total_loss / num_batches if num_batches > 0 else 0
             logger.info(f"Epoch {epoch + 1}/{self.args.epochs} - Loss: {avg_loss:.4f}")
+            
+            # Track loss for last epoch
+            if epoch == self.args.epochs - 1:
+                self.loss_history.append(avg_loss)
         
         self.model.eval()
         logger.info("Training epoch completed")
+        
+        # Send learning metrics to frontend
+        if self.callback and len(self.win_history) > 0:
+            recent_wins = self.win_history[-20:] if len(self.win_history) >= 20 else self.win_history
+            p1_win_rate = sum(1 for w in recent_wins if w == 1) / len(recent_wins)
+            avg_episode_length = sum(self.episode_lengths[-20:]) / min(20, len(self.episode_lengths))
+            
+            # Update ELO based on recent performance
+            if p1_win_rate > 0.55:
+                self.elo_rating += 10
+            elif p1_win_rate < 0.45:
+                self.elo_rating -= 10
+            
+            self.callback({
+                "type": "metrics",
+                "total_episodes": len(self.win_history),
+                "p1_win_rate": round(p1_win_rate * 100, 1),
+                "avg_loss": round(avg_loss, 4),
+                "avg_episode_length": round(avg_episode_length, 1),
+                "elo_rating": round(self.elo_rating),
+                "recent_losses": [round(l, 4) for l in self.loss_history[-10:]]
+            })
 
 if __name__ == "__main__":
     trainer = Trainer()

@@ -15,6 +15,7 @@ function App() {
     const [mode, setMode] = useState('play'); // 'play' or 'train'
     const [message, setMessage] = useState('Welcome to SkyTowers');
     const [history, setHistory] = useState([]);
+    const [metrics, setMetrics] = useState(null);
     const ws = useRef(null);
 
     const purposeCards = [
@@ -74,6 +75,14 @@ function App() {
         ws.current = new WebSocket(WS_URL);
         ws.current.onmessage = (event) => {
             const data = JSON.parse(event.data);
+            
+            // Handle metrics updates
+            if (data.type === 'metrics') {
+                setMetrics(data);
+                return;
+            }
+            
+            // Handle game state updates
             setGameState(data);
             if (data.last_move) {
                 setHistory((prev) => [
@@ -189,6 +198,52 @@ function App() {
                         ))}
                     </ol>
                 </section>
+
+                {mode === 'train' && metrics && (
+                    <section className="metrics-panel">
+                        <div className="guide-header">
+                            <h2>Learning Progress</h2>
+                            <span>AI is improving</span>
+                        </div>
+                        <div className="metrics-grid">
+                            <div className="metric-card">
+                                <span className="metric-label">Episodes</span>
+                                <strong className="metric-value">{metrics.total_episodes}</strong>
+                            </div>
+                            <div className="metric-card">
+                                <span className="metric-label">Win Rate</span>
+                                <strong className="metric-value">{metrics.p1_win_rate}%</strong>
+                            </div>
+                            <div className="metric-card">
+                                <span className="metric-label">Avg Loss</span>
+                                <strong className="metric-value">{metrics.avg_loss}</strong>
+                            </div>
+                            <div className="metric-card">
+                                <span className="metric-label">ELO Rating</span>
+                                <strong className="metric-value">{metrics.elo_rating}</strong>
+                            </div>
+                            <div className="metric-card">
+                                <span className="metric-label">Avg Steps</span>
+                                <strong className="metric-value">{metrics.avg_episode_length}</strong>
+                            </div>
+                        </div>
+                        {metrics.recent_losses && metrics.recent_losses.length > 0 && (
+                            <div className="loss-trend">
+                                <span className="trend-label">Loss Trend (last 10)</span>
+                                <div className="trend-bars">
+                                    {metrics.recent_losses.map((loss, idx) => (
+                                        <div 
+                                            key={idx} 
+                                            className="trend-bar"
+                                            style={{ height: `${Math.min(loss * 100, 100)}%` }}
+                                            title={`Episode ${metrics.total_episodes - metrics.recent_losses.length + idx + 1}: ${loss}`}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </section>
+                )}
 
                 {mode === 'train' && (
                     <section className="history-panel">

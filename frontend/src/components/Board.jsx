@@ -2,7 +2,7 @@ import React from 'react';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 
-const Cell = ({ r, c, height, onClick, isP1, isP2, isSelected, isTarget }) => {
+const Cell = ({ r, c, height, onClick, isP1, isP2, isSelected, isTarget, isWinningTower }) => {
     const blocks = [];
     
     // Refined color palette - visible against black
@@ -27,8 +27,8 @@ const Cell = ({ r, c, height, onClick, isP1, isP2, isSelected, isTarget }) => {
                         color={blockColors[i]}
                         metalness={0.6}
                         roughness={0.4}
-                        emissive={blockColors[i]}
-                        emissiveIntensity={0.05}
+                        emissive={isWinningTower ? "#6dd5ed" : blockColors[i]}
+                        emissiveIntensity={isWinningTower ? 0.8 : 0.05}
                     />
                 </mesh>
                 {/* Subtle edge glow */}
@@ -37,7 +37,7 @@ const Cell = ({ r, c, height, onClick, isP1, isP2, isSelected, isTarget }) => {
                     <meshBasicMaterial 
                         color="#6dd5ed"
                         transparent
-                        opacity={0.03 * (i + 1)}
+                        opacity={isWinningTower ? 0.4 : 0.03 * (i + 1)}
                     />
                 </mesh>
             </group>
@@ -142,12 +142,23 @@ const Cell = ({ r, c, height, onClick, isP1, isP2, isSelected, isTarget }) => {
     );
 };
 
-const Board = ({ board, p1_pos, p2_pos, onCellClick, selectedPos }) => {
+const Board = ({ board, p1_pos, p2_pos, onCellClick, selectedPos, winner }) => {
     const grid = [];
+    
+    // Find winning tower (level 3 with player on it)
+    let winningTowerPos = null;
+    if (winner) {
+        const winnerPos = winner === 1 ? p1_pos : p2_pos;
+        if (board[winnerPos[0]][winnerPos[1]] === 3) {
+            winningTowerPos = winnerPos;
+        }
+    }
+    
     for (let r = 0; r < 5; r++) {
         for (let c = 0; c < 5; c++) {
             const isP1 = p1_pos[0] === r && p1_pos[1] === c;
             const isP2 = p2_pos[0] === r && p2_pos[1] === c;
+            const isWinningTower = winningTowerPos && winningTowerPos[0] === r && winningTowerPos[1] === c;
 
             let isSelected = false;
             let isTarget = false;
@@ -172,6 +183,7 @@ const Board = ({ board, p1_pos, p2_pos, onCellClick, selectedPos }) => {
                     isP2={isP2}
                     isSelected={isSelected}
                     isTarget={isTarget}
+                    isWinningTower={isWinningTower}
                 />
             );
         }
