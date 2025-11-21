@@ -204,12 +204,26 @@ function App() {
             <section className="canvas-panel">
                 <div className="canvas-wrapper">
                     <Canvas camera={{ position: [8, 8, 8], fov: 50 }}>
-                        <color attach="background" args={['#030712']} />
-                        <ambientLight intensity={0.5} />
-                        <pointLight position={[10, 10, 10]} intensity={1} />
-                        <Stars />
+                        <color attach="background" args={['#000000']} />
+                        <ambientLight intensity={0.6} />
+                        <pointLight position={[10, 10, 10]} intensity={1.2} color="#ffffff" />
+                        <pointLight position={[-5, 5, -5]} intensity={0.6} color="#6dd5ed" />
+                        <Stars 
+                            radius={100}
+                            depth={50}
+                            count={3000}
+                            factor={4}
+                            saturation={0}
+                            fade
+                            speed={0.5}
+                        />
                         <GameScene gameState={gameState} onMove={handleMove} />
-                        <OrbitControls />
+                        <OrbitControls 
+                            enableDamping
+                            dampingFactor={0.05}
+                            minDistance={5}
+                            maxDistance={15}
+                        />
                     </Canvas>
                     <div className="canvas-glow" />
                 </div>
