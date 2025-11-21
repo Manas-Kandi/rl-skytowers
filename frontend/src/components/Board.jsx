@@ -99,52 +99,46 @@ const Cell = ({ r, c, height, onClick, isP1, isP2, isSelected, isTarget, isWinni
 
             {blocks}
 
-            {/* Player 1 - Cyan glowing builder */}
+            {/* Player 1 - Cyan Minimal Totem */}
             {isP1 && (
-                <group position={[0, height * 0.18 + 0.3, 0]}>
-                    <mesh castShadow>
-                        <cylinderGeometry args={[0.12, 0.15, 0.35, 32]} />
+                <group position={[0, height * 0.18 + 0.25, 0]}>
+                    {/* Soft glowing body */}
+                    <mesh castShadow position={[0, 0.1, 0]}>
+                        <capsuleGeometry args={[0.12, 0.4, 4, 8]} />
                         <meshStandardMaterial
-                            color="#1a2535"
-                            metalness={0.8}
-                            roughness={0.2}
+                            color="#6dd5ed"
+                            roughness={0.3}
+                            metalness={0.1}
                             emissive="#6dd5ed"
-                            emissiveIntensity={0.8}
+                            emissiveIntensity={0.4}
                         />
                     </mesh>
-                    {/* Player glow */}
-                    <mesh>
-                        <sphereGeometry args={[0.25, 16, 16]} />
-                        <meshBasicMaterial
-                            color="#6dd5ed"
-                            transparent
-                            opacity={0.3}
-                        />
+                    {/* Halo ring */}
+                    <mesh position={[0, 0.25, 0]} rotation={[Math.PI / 2, 0, 0]}>
+                        <torusGeometry args={[0.2, 0.02, 16, 32]} />
+                        <meshBasicMaterial color="#ffffff" transparent opacity={0.6} />
                     </mesh>
                 </group>
             )}
 
-            {/* Player 2 - Magenta glowing builder */}
+            {/* Player 2 - Magenta Minimal Totem */}
             {isP2 && (
-                <group position={[0, height * 0.18 + 0.3, 0]}>
-                    <mesh castShadow>
-                        <cylinderGeometry args={[0.12, 0.15, 0.35, 32]} />
+                <group position={[0, height * 0.18 + 0.25, 0]}>
+                    {/* Soft glowing body */}
+                    <mesh castShadow position={[0, 0.1, 0]}>
+                        <capsuleGeometry args={[0.12, 0.4, 4, 8]} />
                         <meshStandardMaterial
-                            color="#2a1a35"
-                            metalness={0.8}
-                            roughness={0.2}
+                            color="#ed6dd5"
+                            roughness={0.3}
+                            metalness={0.1}
                             emissive="#ed6dd5"
-                            emissiveIntensity={0.8}
+                            emissiveIntensity={0.4}
                         />
                     </mesh>
-                    {/* Player glow */}
-                    <mesh>
-                        <sphereGeometry args={[0.25, 16, 16]} />
-                        <meshBasicMaterial
-                            color="#ed6dd5"
-                            transparent
-                            opacity={0.3}
-                        />
+                    {/* Halo ring */}
+                    <mesh position={[0, 0.25, 0]} rotation={[Math.PI / 2, 0, 0]}>
+                        <torusGeometry args={[0.2, 0.02, 16, 32]} />
+                        <meshBasicMaterial color="#ffffff" transparent opacity={0.6} />
                     </mesh>
                 </group>
             )}
