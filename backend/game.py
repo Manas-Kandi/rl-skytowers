@@ -5,24 +5,32 @@ import logging
 logger = logging.getLogger(__name__)
 
 class SkyTowersGame:
+    """
+    Game logic for SkyTowers.
+    
+    The game is played on a 5x5 grid.
+    Players take turns moving and building.
+    Goal: Reach level 3 or force opponent into stalemate.
+    """
     def __init__(self):
         self.board_size = 5
         self.action_size = 64
         self.reset()
 
     def reset(self):
+        """Reset the game state to initial conditions."""
         # 5x5 board
         # Levels: 0 (ground), 1, 2, 3, 4 (dome)
         self.board = np.zeros((self.board_size, self.board_size), dtype=int)
         
         # Player positions: (player_id, x, y)
         # Player 1 starts at (0,0), Player -1 starts at (4,4)
-        self.p1_pos = (0, 0)
-        self.p2_pos = (4, 4)
-        self.current_player = 1 # 1 or -1
-        self.winner = None
-        self.steps = 0
-        self.max_steps = 100 # Avoid infinite games
+        self.p1_pos: Tuple[int, int] = (0, 0)
+        self.p2_pos: Tuple[int, int] = (4, 4)
+        self.current_player: int = 1 # 1 or -1
+        self.winner: Optional[int] = None
+        self.steps: int = 0
+        self.max_steps: int = 100 # Avoid infinite games
 
     def get_state(self) -> np.ndarray:
         """
@@ -87,6 +95,8 @@ class SkyTowersGame:
             next_height = self.board[nr, nc]
             
             # Cannot move onto a dome (level 4) or down more than 1 level
+            # Actually, you can jump down any height, but only climb 1.
+            # "A worker may move into an adjacent space... if the destination space is no more than one level higher than the worker's current level."
             if next_height > curr_height + 1 or next_height >= 4:
                 continue
                     
@@ -102,7 +112,7 @@ class SkyTowersGame:
                 if (br, bc) == other_pos:
                     continue
                     
-                # Cannot build where you are standing
+                # Cannot build where you are standing (the new position)
                 if (br, bc) == (nr, nc):
                     continue
                     
@@ -121,8 +131,16 @@ class SkyTowersGame:
             
         Returns:
             Winner (1, -1, 0 for draw) or None if game continues
+        
+        Raises:
+            ValueError: If the move is invalid (though usually checked before calling)
         """
+        if self.winner is not None:
+            return self.winner
+
         move_pos, build_pos = action
+        
+        # Basic validation could go here, but relying on get_valid_moves for perf
         
         # Update player position
         if self.current_player == 1:
@@ -168,9 +186,11 @@ class SkyTowersGame:
             return self.winner
         
         # Check for stalemate
+        # If current player has no moves, they lose.
+        # So if current_player is 1 and has no moves, winner is -1.
         if len(self.get_valid_moves()) == 0:
-            # Current player loses (no valid moves)
             logger.info(f"Player {self.current_player} has no valid moves - loses")
-            return -self.current_player
+            self.winner = -self.current_player
+            return self.winner
             
         return 0

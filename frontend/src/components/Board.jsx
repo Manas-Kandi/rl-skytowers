@@ -1,10 +1,10 @@
 import React from 'react';
-import { Text } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 const Cell = ({ r, c, height, onClick, isP1, isP2, isSelected, isTarget, isWinningTower }) => {
     const blocks = [];
-    
+
     // Refined color palette - visible against black
     const blockColors = [
         "#3a4050",  // Level 1
@@ -12,32 +12,33 @@ const Cell = ({ r, c, height, onClick, isP1, isP2, isSelected, isTarget, isWinni
         "#5a6070",  // Level 3
         "#6a7080"   // Level 4
     ];
-    
+
     // Build tower blocks with refined geometry
     for (let i = 0; i < height && i < 4; i++) {
         const blockHeight = 0.18;
         const yPos = i * blockHeight + blockHeight / 2;
-        
+
         blocks.push(
             <group key={i}>
                 {/* Main block */}
                 <mesh position={[0, yPos, 0]} castShadow receiveShadow>
                     <boxGeometry args={[0.85, blockHeight, 0.85]} />
-                    <meshStandardMaterial 
+                    <meshStandardMaterial
                         color={blockColors[i]}
-                        metalness={0.6}
-                        roughness={0.4}
+                        metalness={0.8}
+                        roughness={0.2}
                         emissive={isWinningTower ? "#6dd5ed" : blockColors[i]}
-                        emissiveIntensity={isWinningTower ? 0.8 : 0.05}
+                        emissiveIntensity={isWinningTower ? 0.8 : 0.1}
                     />
                 </mesh>
                 {/* Subtle edge glow */}
                 <mesh position={[0, yPos, 0]}>
                     <boxGeometry args={[0.87, blockHeight + 0.01, 0.87]} />
-                    <meshBasicMaterial 
+                    <meshBasicMaterial
                         color="#6dd5ed"
                         transparent
-                        opacity={isWinningTower ? 0.4 : 0.03 * (i + 1)}
+                        opacity={isWinningTower ? 0.4 : 0.05 * (i + 1)}
+                        side={THREE.BackSide}
                     />
                 </mesh>
             </group>
@@ -50,21 +51,22 @@ const Cell = ({ r, c, height, onClick, isP1, isP2, isSelected, isTarget, isWinni
             <group key="dome">
                 <mesh position={[0, 0.72 + 0.15, 0]} castShadow>
                     <sphereGeometry args={[0.38, 32, 32]} />
-                    <meshStandardMaterial 
+                    <meshStandardMaterial
                         color="#1a2535"
-                        metalness={0.8}
-                        roughness={0.2}
+                        metalness={0.9}
+                        roughness={0.1}
                         emissive="#6dd5ed"
-                        emissiveIntensity={0.4}
+                        emissiveIntensity={0.5}
                     />
                 </mesh>
                 {/* Dome glow */}
                 <mesh position={[0, 0.72 + 0.15, 0]}>
-                    <sphereGeometry args={[0.42, 32, 32]} />
-                    <meshBasicMaterial 
+                    <sphereGeometry args={[0.45, 32, 32]} />
+                    <meshBasicMaterial
                         color="#6dd5ed"
                         transparent
-                        opacity={0.15}
+                        opacity={0.2}
+                        side={THREE.BackSide}
                     />
                 </mesh>
             </group>
@@ -72,18 +74,19 @@ const Cell = ({ r, c, height, onClick, isP1, isP2, isSelected, isTarget, isWinni
     }
 
     const baseColor = isSelected ? "#6dd5ed" : "#2a3040";
+    const emissiveIntensity = isSelected ? 0.4 : 0;
 
     return (
         <group position={[r - 2, 0, c - 2]} onClick={(e) => { e.stopPropagation(); onClick(r, c); }}>
             {/* Island base - dark minimal */}
             <mesh position={[0, -0.04, 0]} receiveShadow>
                 <boxGeometry args={[0.92, 0.08, 0.92]} />
-                <meshStandardMaterial 
+                <meshStandardMaterial
                     color={baseColor}
-                    metalness={0.3}
-                    roughness={0.7}
+                    metalness={0.5}
+                    roughness={0.5}
                     emissive={isSelected ? "#6dd5ed" : "#000000"}
-                    emissiveIntensity={isSelected ? 0.2 : 0}
+                    emissiveIntensity={emissiveIntensity}
                 />
             </mesh>
 
@@ -93,47 +96,47 @@ const Cell = ({ r, c, height, onClick, isP1, isP2, isSelected, isTarget, isWinni
             {isP1 && (
                 <group position={[0, height * 0.18 + 0.3, 0]}>
                     <mesh castShadow>
-                        <cylinderGeometry args={[0.15, 0.18, 0.35, 32]} />
-                        <meshStandardMaterial 
+                        <cylinderGeometry args={[0.12, 0.15, 0.35, 32]} />
+                        <meshStandardMaterial
                             color="#1a2535"
-                            metalness={0.7}
-                            roughness={0.3}
+                            metalness={0.8}
+                            roughness={0.2}
                             emissive="#6dd5ed"
-                            emissiveIntensity={0.6}
+                            emissiveIntensity={0.8}
                         />
                     </mesh>
                     {/* Player glow */}
                     <mesh>
                         <sphereGeometry args={[0.25, 16, 16]} />
-                        <meshBasicMaterial 
+                        <meshBasicMaterial
                             color="#6dd5ed"
                             transparent
-                            opacity={0.2}
+                            opacity={0.3}
                         />
                     </mesh>
                 </group>
             )}
-            
+
             {/* Player 2 - Magenta glowing builder */}
             {isP2 && (
                 <group position={[0, height * 0.18 + 0.3, 0]}>
                     <mesh castShadow>
-                        <cylinderGeometry args={[0.15, 0.18, 0.35, 32]} />
-                        <meshStandardMaterial 
+                        <cylinderGeometry args={[0.12, 0.15, 0.35, 32]} />
+                        <meshStandardMaterial
                             color="#2a1a35"
-                            metalness={0.7}
-                            roughness={0.3}
+                            metalness={0.8}
+                            roughness={0.2}
                             emissive="#ed6dd5"
-                            emissiveIntensity={0.6}
+                            emissiveIntensity={0.8}
                         />
                     </mesh>
                     {/* Player glow */}
                     <mesh>
                         <sphereGeometry args={[0.25, 16, 16]} />
-                        <meshBasicMaterial 
+                        <meshBasicMaterial
                             color="#ed6dd5"
                             transparent
-                            opacity={0.2}
+                            opacity={0.3}
                         />
                     </mesh>
                 </group>
@@ -144,7 +147,7 @@ const Cell = ({ r, c, height, onClick, isP1, isP2, isSelected, isTarget, isWinni
 
 const Board = ({ board, p1_pos, p2_pos, onCellClick, selectedPos, winner }) => {
     const grid = [];
-    
+
     // Find winning tower (level 3 with player on it)
     let winningTowerPos = null;
     if (winner) {
@@ -153,7 +156,7 @@ const Board = ({ board, p1_pos, p2_pos, onCellClick, selectedPos, winner }) => {
             winningTowerPos = winnerPos;
         }
     }
-    
+
     for (let r = 0; r < 5; r++) {
         for (let c = 0; c < 5; c++) {
             const isP1 = p1_pos[0] === r && p1_pos[1] === c;
