@@ -8,10 +8,11 @@ const GameCanvas = ({ gameState, onMove }) => {
         <section className="canvas-panel">
             <div className="canvas-wrapper">
                 <Canvas camera={{ position: [8, 8, 8], fov: 50 }}>
-                    <color attach="background" args={['#000000']} />
-                    <ambientLight intensity={0.6} />
-                    <pointLight position={[10, 10, 10]} intensity={1.2} color="#ffffff" />
-                    <pointLight position={[-5, 5, -5]} intensity={0.6} color="#6dd5ed" />
+                    <color attach="background" args={['#050505']} />
+                    <ambientLight intensity={0.8} />
+                    <hemisphereLight skyColor="#ffffff" groundColor="#000000" intensity={0.5} />
+                    <pointLight position={[10, 10, 10]} intensity={1.5} color="#ffffff" castShadow />
+                    <pointLight position={[-5, 5, -5]} intensity={0.8} color="#6dd5ed" />
                     <Stars
                         radius={100}
                         depth={50}

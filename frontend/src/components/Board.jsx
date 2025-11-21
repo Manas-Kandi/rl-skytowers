@@ -1,16 +1,17 @@
 import React from 'react';
 import { useFrame } from '@react-three/fiber';
+import { Edges } from '@react-three/drei';
 import * as THREE from 'three';
 
 const Cell = ({ r, c, height, onClick, isP1, isP2, isSelected, isTarget, isWinningTower }) => {
     const blocks = [];
 
-    // Refined color palette - visible against black
+    // Refined color palette - Lighter for better visibility
     const blockColors = [
-        "#3a4050",  // Level 1
-        "#4a5060",  // Level 2
-        "#5a6070",  // Level 3
-        "#6a7080"   // Level 4
+        "#5a6070",  // Level 1 (was #3a4050)
+        "#6a7080",  // Level 2 (was #4a5060)
+        "#7a8090",  // Level 3 (was #5a6070)
+        "#8a90a0"   // Level 4 (was #6a7080)
     ];
 
     // Build tower blocks with refined geometry
@@ -25,10 +26,15 @@ const Cell = ({ r, c, height, onClick, isP1, isP2, isSelected, isTarget, isWinni
                     <boxGeometry args={[0.85, blockHeight, 0.85]} />
                     <meshStandardMaterial
                         color={blockColors[i]}
-                        metalness={0.8}
-                        roughness={0.2}
+                        metalness={0.6}
+                        roughness={0.3}
                         emissive={isWinningTower ? "#6dd5ed" : blockColors[i]}
                         emissiveIntensity={isWinningTower ? 0.8 : 0.1}
+                    />
+                    <Edges
+                        scale={1}
+                        threshold={15}
+                        color={isWinningTower ? "#aeefff" : "#a0a0b0"}
                     />
                 </mesh>
                 {/* Subtle edge glow */}
@@ -52,7 +58,7 @@ const Cell = ({ r, c, height, onClick, isP1, isP2, isSelected, isTarget, isWinni
                 <mesh position={[0, 0.72 + 0.15, 0]} castShadow>
                     <sphereGeometry args={[0.38, 32, 32]} />
                     <meshStandardMaterial
-                        color="#1a2535"
+                        color="#2a3545"
                         metalness={0.9}
                         roughness={0.1}
                         emissive="#6dd5ed"
@@ -73,7 +79,7 @@ const Cell = ({ r, c, height, onClick, isP1, isP2, isSelected, isTarget, isWinni
         );
     }
 
-    const baseColor = isSelected ? "#6dd5ed" : "#2a3040";
+    const baseColor = isSelected ? "#6dd5ed" : "#3a4050"; // Lighter base
     const emissiveIntensity = isSelected ? 0.4 : 0;
 
     return (
@@ -88,6 +94,7 @@ const Cell = ({ r, c, height, onClick, isP1, isP2, isSelected, isTarget, isWinni
                     emissive={isSelected ? "#6dd5ed" : "#000000"}
                     emissiveIntensity={emissiveIntensity}
                 />
+                <Edges scale={1} threshold={15} color="#4a5060" />
             </mesh>
 
             {blocks}
