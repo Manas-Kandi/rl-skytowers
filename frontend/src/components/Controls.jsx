@@ -6,10 +6,10 @@ const Controls = ({ onReset, mode, onStartTraining, onStopTraining }) => {
             {mode === 'play' ? (
                 <>
                     <button onClick={onReset}>Reset Game</button>
-                    <button onClick={onStartTraining} style={{ marginLeft: '10px' }}>Start Training</button>
+                    <button onClick={onStartTraining}>Start Training</button>
                 </>
             ) : (
-                <button onClick={onStopTraining} style={{ background: '#ff4444' }}>Stop Watching</button>
+                <button onClick={onStopTraining} className="stop-btn">Stop Watching</button>
             )}
         </div>
     );

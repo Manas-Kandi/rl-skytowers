@@ -9,7 +9,6 @@ const HistoryLog = ({ history }) => {
 
     return (
         <div className="history-log">
-            <h3>Move History</h3>
             <ul>
                 {history.map((entry, i) => (
                     <li key={i}>

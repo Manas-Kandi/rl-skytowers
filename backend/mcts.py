@@ -11,7 +11,7 @@ class Args:
     
     def __init__(self):
         # MCTS parameters
-        self.numMCTSSims = 25  # Number of simulations per move
+        self.numMCTSSims = 100  # Increased from 25 for better search
         self.cpuct = 1.0  # UCB exploration constant
         
         # Device
@@ -19,10 +19,12 @@ class Args:
         
         # Training parameters
         self.lr = 0.001  # Learning rate
-        self.epochs = 5  # Training epochs per batch
+        self.epochs = 10  # Increased epochs per batch
         self.batch_size = 64  # Batch size
-        self.num_episodes = 5  # Number of self-play episodes
+        self.num_episodes = 20  # Increased episodes per iteration
+        self.num_iterations = 100 # Total number of training iterations
         self.checkpoint_dir = './checkpoints'  # Model checkpoint directory
+        self.buffer_size = 20000 # Max examples in replay buffer
 
 class MCTS:
     """

@@ -3,46 +3,64 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Tuple
 
+class ResidualBlock(nn.Module):
+    """
+    Residual Block with two convolutional layers.
+    """
+    def __init__(self, channels):
+        super(ResidualBlock, self).__init__()
+        self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(channels)
+        self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(channels)
+
+    def forward(self, x):
+        residual = x
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = self.bn2(self.conv2(out))
+        out += residual
+        out = F.relu(out)
+        return out
+
 class SkyNet(nn.Module):
     """
-    Neural network for SkyTowers game.
+    Neural network for SkyTowers game using ResNet architecture.
     
     Architecture:
-    - Shared convolutional trunk for feature extraction
-    - Policy head: outputs probability distribution over actions
-    - Value head: outputs game value estimate
-    
-    Action space: 64 (8 move directions × 8 build directions)
+    - Initial Convolutional Block
+    - Residual Tower (multiple Residual Blocks)
+    - Policy Head
+    - Value Head
     """
     
-    def __init__(self, board_size: int = 5, num_channels: int = 4, action_size: int = 64):
+    def __init__(self, board_size: int = 5, num_channels: int = 4, action_size: int = 64, num_res_blocks: int = 4):
         """
         Initialize the SkyNet model.
         
         Args:
             board_size: Size of the game board (default 5x5)
-            num_channels: Number of input channels (default 4: p1, p2, board, player_id)
+            num_channels: Number of input channels (default 4)
             action_size: Number of possible actions (default 64)
+            num_res_blocks: Number of residual blocks (default 4)
         """
         super(SkyNet, self).__init__()
         self.board_size = board_size
         self.action_size = action_size 
         
-        # Common trunk
-        self.conv1 = nn.Conv2d(num_channels, 64, 3, padding=1)
-        self.bn1 = nn.BatchNorm2d(64)
-        self.conv2 = nn.Conv2d(64, 64, 3, padding=1)
-        self.bn2 = nn.BatchNorm2d(64)
-        self.conv3 = nn.Conv2d(64, 64, 3, padding=1)
-        self.bn3 = nn.BatchNorm2d(64)
+        # Initial Block
+        self.conv_input = nn.Conv2d(num_channels, 64, kernel_size=3, padding=1, bias=False)
+        self.bn_input = nn.BatchNorm2d(64)
+        
+        # Residual Tower
+        self.res_blocks = nn.ModuleList([ResidualBlock(64) for _ in range(num_res_blocks)])
         
         # Policy Head
-        self.p_conv = nn.Conv2d(64, 2, 1) # 1x1 conv
+        self.p_conv = nn.Conv2d(64, 2, kernel_size=1, bias=False)
         self.p_bn = nn.BatchNorm2d(2)
-        self.p_fc = nn.Linear(2 * board_size * board_size, self.action_size)
+        self.p_fc = nn.Linear(2 * board_size * board_size, action_size)
         
         # Value Head
-        self.v_conv = nn.Conv2d(64, 1, 1)
+        self.v_conv = nn.Conv2d(64, 1, kernel_size=1, bias=False)
         self.v_bn = nn.BatchNorm2d(1)
         self.v_fc1 = nn.Linear(board_size * board_size, 64)
         self.v_fc2 = nn.Linear(64, 1)
@@ -50,29 +68,23 @@ class SkyNet(nn.Module):
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Forward pass through the network.
-        
-        Args:
-            x: Input tensor of shape (batch_size, num_channels, board_size, board_size)
-            
-        Returns:
-            Tuple of (policy_logits, value_estimate)
-            - policy_logits: Shape (batch_size, action_size), log probabilities
-            - value_estimate: Shape (batch_size, 1), value in [-1, 1]
         """
-        # Shared trunk: extract features
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = F.relu(self.bn2(self.conv2(x)))
-        x = F.relu(self.bn3(self.conv3(x)))
+        # Initial Block
+        x = F.relu(self.bn_input(self.conv_input(x)))
         
-        # Policy head: output action probabilities
+        # Residual Tower
+        for block in self.res_blocks:
+            x = block(x)
+        
+        # Policy Head
         p = F.relu(self.p_bn(self.p_conv(x)))
-        p = p.view(p.size(0), -1)  # Flatten
+        p = p.view(p.size(0), -1)
         p = self.p_fc(p)
         p = F.log_softmax(p, dim=1)
         
-        # Value head: output game value estimate
+        # Value Head
         v = F.relu(self.v_bn(self.v_conv(x)))
-        v = v.view(v.size(0), -1)  # Flatten
+        v = v.view(v.size(0), -1)
         v = F.relu(self.v_fc1(v))
         v = torch.tanh(self.v_fc2(v))
         

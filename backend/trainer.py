@@ -22,6 +22,27 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+class ReplayBuffer:
+    """
+    Fixed-size buffer to store training examples.
+    """
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.buffer = deque(maxlen=capacity)
+
+    def push(self, examples):
+        """Add a list of examples to the buffer."""
+        for ex in examples:
+            self.buffer.append(ex)
+
+    def sample(self, batch_size):
+        """Sample a batch of examples."""
+        indices = np.random.choice(len(self.buffer), batch_size, replace=False)
+        return [self.buffer[i] for i in indices]
+
+    def __len__(self):
+        return len(self.buffer)
+
 class Trainer:
     """
     Self-play training loop for SkyTowers.
@@ -50,6 +71,9 @@ class Trainer:
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.args.lr)
         self.mcts = MCTS(self.game, self.model, self.args)
         
+        # Replay Buffer
+        self.replay_buffer = ReplayBuffer(self.args.buffer_size)
+        
         # Learning metrics
         self.loss_history = []
         self.win_history = []  # 1 for P1 win, -1 for P2 win
@@ -77,8 +101,6 @@ class Trainer:
         self.mcts = MCTS(game, self.model, self.args)
         step = 0
         
-        # logger.info("Starting new episode")
-        
         while True:
             step += 1
             # Use high temperature for exploration in early moves
@@ -88,7 +110,6 @@ class Trainer:
             game_ended = game.getGameEnded()
             if game_ended != 0:
                 final_value = game_ended
-                # logger.info(f"Episode ended after {step} steps. Winner: {final_value}")
                 
                 # Track metrics
                 self.win_history.append(final_value)
@@ -141,11 +162,6 @@ class Trainer:
                         },
                         "step": step
                     }
-                    # Only keep the latest update to prevent queue buildup if consumer is slow
-                    # But for smooth visualization we might want all? 
-                    # Actually, for training speed, we should just push and let consumer handle dropping frames if needed.
-                    # But to avoid memory issues, we can use a small maxsize queue and full=drop behavior in the server.
-                    # Here we just put.
                     self.callback_queue.put_nowait(update_data)
                 except queue.Full:
                     pass # Drop frame if queue is full
@@ -154,26 +170,36 @@ class Trainer:
         """
         Main training loop: execute episodes and train model.
         """
-        logger.info(f"Starting training for {self.args.num_episodes} episodes")
+        logger.info(f"Starting training for {self.args.num_iterations} iterations")
         
-        for episode_num in range(1, self.args.num_episodes + 1):
+        for iteration in range(1, self.args.num_iterations + 1):
             if not self.running:
                 logger.info("Training stopped by user request")
                 break
-
-            # logger.info(f"=== Episode {episode_num}/{self.args.num_episodes} ===")
             
-            # Execute self-play episode
-            examples = self.execute_episode()
-            # logger.info(f"Collected {len(examples)} training examples")
+            logger.info(f"=== Iteration {iteration}/{self.args.num_iterations} ===")
             
-            # Train model on collected data
-            self.train(examples)
+            # 1. Self-Play
+            iteration_examples = []
+            for _ in range(self.args.num_episodes):
+                if not self.running: break
+                iteration_examples += self.execute_episode()
             
-            # Save checkpoint
-            checkpoint_path = os.path.join(self.args.checkpoint_dir, 'best.pth.tar')
+            # 2. Save to Replay Buffer
+            self.replay_buffer.push(iteration_examples)
+            logger.info(f"Replay Buffer size: {len(self.replay_buffer)}")
+            
+            # 3. Train
+            if len(self.replay_buffer) > self.args.batch_size:
+                self.train()
+            
+            # 4. Save Checkpoint
+            checkpoint_path = os.path.join(self.args.checkpoint_dir, f'checkpoint_{iteration}.pth.tar')
             self.save_checkpoint(checkpoint_path)
-            # logger.info(f"Saved checkpoint to {checkpoint_path}")
+            
+            # Save best model (latest for now)
+            best_path = os.path.join(self.args.checkpoint_dir, 'best.pth.tar')
+            self.save_checkpoint(best_path)
         
         logger.info("Training completed!")
 
@@ -201,27 +227,24 @@ class Trainer:
         else:
             logger.warning(f"No checkpoint found at {filepath}")
 
-    def train(self, examples):
+    def train(self):
         """
-        Train the neural network on collected examples.
-        
-        Args:
-            examples: List of (state, policy, value) tuples
+        Train the neural network on examples from replay buffer.
         """
-        # logger.info(f"Training on {len(examples)} examples for {self.args.epochs} epochs")
-        
-        shuffle(examples)
+        self.model.train()
         
         for epoch in range(self.args.epochs):
-            self.model.train()
-            batch_idx = 0
             total_loss = 0
             num_batches = 0
             
-            while batch_idx < len(examples):
-                # Sample random batch
-                sample_ids = np.random.randint(len(examples), size=self.args.batch_size)
-                boards, pis, vs = list(zip(*[examples[i] for i in sample_ids]))
+            # Train on random batches
+            # We'll do (buffer_size / batch_size) steps per epoch roughly, 
+            # or just a fixed number of steps based on new data size
+            num_steps = len(self.replay_buffer) // self.args.batch_size
+            
+            for _ in range(num_steps):
+                batch = self.replay_buffer.sample(self.args.batch_size)
+                boards, pis, vs = list(zip(*batch))
                 
                 # Convert to tensors
                 boards = torch.FloatTensor(np.array(boards).astype(np.float32))
@@ -248,17 +271,14 @@ class Trainer:
                 
                 total_loss += loss.item()
                 num_batches += 1
-                batch_idx += self.args.batch_size
             
             avg_loss = total_loss / num_batches if num_batches > 0 else 0
-            # logger.info(f"Epoch {epoch + 1}/{self.args.epochs} - Loss: {avg_loss:.4f}")
             
             # Track loss for last epoch
             if epoch == self.args.epochs - 1:
                 self.loss_history.append(avg_loss)
         
         self.model.eval()
-        # logger.info("Training epoch completed")
         
         # Send learning metrics to frontend
         if self.callback_queue and len(self.win_history) > 0:
