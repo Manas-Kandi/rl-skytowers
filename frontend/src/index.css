@@ -214,6 +214,215 @@ button:disabled {
     text-align: left;
 }
 
+.training-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.training-controls label {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+.training-controls select {
+    width: 100%;
+}
+
+.training-controls button {
+    width: 100%;
+}
+
+/* Training Timer */
+.training-timer {
+    padding: 12px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.timer-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.timer-row label {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+.time-value {
+    font-size: 16px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+}
+
+/* Compact Metrics */
+.metrics-compact {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.metric-row label {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+.metric-row span {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+/* Section Labels */
+.section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+    display: block;
+}
+
+/* Moves Section */
+.moves-section {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.moves-log {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.move-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    padding: 4px 0;
+}
+
+.player-tag {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+}
+
+.player-tag.p1 {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--accent);
+}
+
+.player-tag.p2 {
+    background: rgba(237, 109, 213, 0.1);
+    color: #ed6dd5;
+}
+
+.move-text {
+    color: var(--text-dim);
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+}
+
+/* Games Section */
+.games-section {
+    padding: 12px 0;
+    max-height: 240px;
+    overflow: hidden;
+}
+
+.games-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.game-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.game-item:hover {
+    border-color: var(--text-dim);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.winner-tag {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+}
+
+.winner-tag.p1 {
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--accent);
+}
+
+.winner-tag.p2 {
+    background: rgba(237, 109, 213, 0.15);
+    color: #ed6dd5;
+}
+
+.game-info {
+    font-size: 11px;
+    color: var(--text-dim);
+}
+
+/* Scrollbar Styling */
+.moves-log::-webkit-scrollbar,
+.games-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.moves-log::-webkit-scrollbar-track,
+.games-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.moves-log::-webkit-scrollbar-thumb,
+.games-list::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+}
+
+.moves-log::-webkit-scrollbar-thumb:hover,
+.games-list::-webkit-scrollbar-thumb:hover {
+    background: var(--text-dim);
+}
+
 /* Canvas */
 .canvas-panel {
     flex: 1;

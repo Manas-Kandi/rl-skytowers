@@ -50,23 +50,34 @@ class Trainer:
     Generates training data through self-play games and trains the neural network.
     """
     
-    def __init__(self, callback_queue: queue.Queue = None):
+    def __init__(self, callback_queue: queue.Queue = None, train_duration_minutes: float = None):
         """
         Initialize trainer.
         
         Args:
             callback_queue: Thread-safe queue for pushing visualization updates
+            train_duration_minutes: Optional training duration in minutes (None = use num_iterations)
         """
         self.args = Args()
         self.game = SkyTowersGame()
         self.model = SkyNet()
         self.callback_queue = callback_queue
         self.running = True  # Flag to control training loop
+        self.train_duration_minutes = train_duration_minutes
+        self.start_time = None
         
         # Move model to appropriate device
         self.device = 'mps' if self.args.cuda else 'cpu'
         self.model = self.model.to(self.device)
         logger.info(f"Model moved to device: {self.device}")
+        
+        # Load previous checkpoint if exists
+        checkpoint_path = os.path.join(self.args.checkpoint_dir, 'best.pth.tar')
+        if os.path.exists(checkpoint_path):
+            self.load_checkpoint(checkpoint_path)
+            logger.info("Continuing training from previous checkpoint")
+        else:
+            logger.info("Starting training from scratch")
         
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.args.lr)
         self.mcts = MCTS(self.game, self.model, self.args)
@@ -170,9 +181,23 @@ class Trainer:
         """
         Main training loop: execute episodes and train model.
         """
-        logger.info(f"Starting training for {self.args.num_iterations} iterations")
+        self.start_time = time.time()
         
-        for iteration in range(1, self.args.num_iterations + 1):
+        if self.train_duration_minutes:
+            logger.info(f"Starting training for {self.train_duration_minutes} minutes")
+            max_iterations = 10000  # Large number, will stop based on time
+        else:
+            logger.info(f"Starting training for {self.args.num_iterations} iterations")
+            max_iterations = self.args.num_iterations
+        
+        for iteration in range(1, max_iterations + 1):
+            # Check time limit
+            if self.train_duration_minutes:
+                elapsed_minutes = (time.time() - self.start_time) / 60
+                if elapsed_minutes >= self.train_duration_minutes:
+                    logger.info(f"Training duration reached ({self.train_duration_minutes} minutes)")
+                    break
+            
             if not self.running:
                 logger.info("Training stopped by user request")
                 break

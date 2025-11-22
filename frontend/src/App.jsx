@@ -16,10 +16,19 @@ function App() {
     const [metrics, setMetrics] = useState(null);
     const [models, setModels] = useState([]);
     const [currentModel, setCurrentModel] = useState(null);
+
+    // Training state
+    const [trainingStartTime, setTrainingStartTime] = useState(null);
+    const [trainingDuration, setTrainingDuration] = useState(null);
+    const [currentGameMoves, setCurrentGameMoves] = useState([]);
+    const [completedGames, setCompletedGames] = useState([]);
+    const [isReplaying, setIsReplaying] = useState(false);
+
     const ws = useRef(null);
+    const gameIdCounter = useRef(0);
 
     const fetchState = async () => {
-        if (mode === 'train') return; // Don't poll in train mode
+        if (mode === 'train' || isReplaying) return; // Don't poll in train mode or during replay
         try {
             const res = await axios.get(`${API_URL}/game/state`);
             setGameState(res.data);
@@ -54,14 +63,18 @@ function App() {
     useEffect(() => {
         fetchState();
         fetchModels();
-        const interval = setInterval(fetchState, 1000); // Poll every second
+        const interval = setInterval(fetchState, 1000);
         return () => clearInterval(interval);
-    }, [mode]);
+    }, [mode, isReplaying]);
 
-    const startTraining = async () => {
+    const startTraining = async (durationMinutes) => {
         setMode('train');
         setHistory([]);
-        setMessage('Training Started...');
+        setCurrentGameMoves([]);
+        setCompletedGames([]);
+        setTrainingStartTime(Date.now());
+        setTrainingDuration(durationMinutes);
+        setMessage(`Training Started for ${durationMinutes} minutes...`);
 
         ws.current = new WebSocket(WS_URL);
         ws.current.onmessage = (event) => {
@@ -76,40 +89,88 @@ function App() {
             // Handle game state updates
             if (data.type === 'game_update') {
                 setGameState(data);
+
                 if (data.last_move) {
-                    setHistory((prev) => [
-                        ...prev,
-                        {
-                            player: data.current_player * -1,
-                            move: data.last_move.move,
-                            build: data.last_move.build
-                        }
-                    ]);
+                    const move = {
+                        player: data.current_player * -1,
+                        move: data.last_move.move,
+                        build: data.last_move.build
+                    };
+
+                    setCurrentGameMoves(prev => [...prev, move]);
+                    setHistory(prev => [...prev, move]);
                 }
+
+                // Game completed
                 if (data.winner !== null) {
                     setMessage(`Episode Finished. Winner: ${data.winner}`);
+
+                    // Save completed game
+                    setCompletedGames(prev => [...prev, {
+                        id: gameIdCounter.current++,
+                        winner: data.winner,
+                        moves: currentGameMoves,
+                        finalBoard: data.board
+                    }]);
+
+                    // Reset current game moves for next episode
+                    setCurrentGameMoves([]);
                 } else {
                     setMessage(`Training Episode · Step ${data.step}`);
                 }
             } else if (!data.type) {
-                // Fallback for legacy or direct state
                 setGameState(data);
             }
         };
 
-        await axios.post(`${API_URL}/training/start`);
+        await axios.post(`${API_URL}/training/start`, { duration_minutes: durationMinutes });
     };
 
     const stopTraining = async () => {
         setMode('play');
+        setTrainingStartTime(null);
+        setTrainingDuration(null);
+        setCurrentGameMoves([]);
         if (ws.current) ws.current.close();
         await axios.post(`${API_URL}/training/stop`);
         fetchState();
-        fetchModels(); // Refresh models list after training
+        fetchModels();
+    };
+
+    const replayGame = async (game) => {
+        if (!game || !game.moves) return;
+
+        setIsReplaying(true);
+        setMessage(`Replaying Game (Winner: P${game.winner})`);
+
+        // Reset to initial state
+        await axios.post(`${API_URL}/game/reset`);
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Replay each move with delay
+        for (let i = 0; i < game.moves.length; i++) {
+            const move = game.moves[i];
+            try {
+                await axios.post(`${API_URL}/game/move`, {
+                    move_r: move.move[0],
+                    move_c: move.move[1],
+                    build_r: move.build[0],
+                    build_c: move.build[1]
+                });
+                await fetchState();
+                await new Promise(resolve => setTimeout(resolve, 500));
+            } catch (err) {
+                console.error('Replay error:', err);
+                break;
+            }
+        }
+
+        setIsReplaying(false);
+        setMessage(`Replay Complete (Winner: P${game.winner})`);
     };
 
     const handleMove = async (move) => {
-        if (mode === 'train') return;
+        if (mode === 'train' || isReplaying) return;
         try {
             const res = await axios.post(`${API_URL}/game/move`, move);
             if (res.data.winner !== null) {
@@ -141,6 +202,12 @@ function App() {
                 models={models}
                 currentModel={currentModel}
                 onLoadModel={handleLoadModel}
+                trainingStartTime={trainingStartTime}
+                trainingDuration={trainingDuration}
+                currentGameMoves={currentGameMoves}
+                completedGames={completedGames}
+                onReplayGame={replayGame}
+                metrics={metrics}
             />
 
             {mode === 'train' && (

@@ -119,7 +119,7 @@ class GameManager:
             "steps": self.game.steps
         }
 
-    def start_training(self):
+    def start_training(self, duration_minutes: Optional[float] = None):
         if self.training_active:
             raise Exception("Training already in progress")
         
@@ -128,10 +128,14 @@ class GameManager:
         with self.update_queue.mutex:
             self.update_queue.queue.clear()
             
-        self.trainer = Trainer(callback_queue=self.update_queue)
+        self.trainer = Trainer(callback_queue=self.update_queue, train_duration_minutes=duration_minutes)
         self.training_thread = threading.Thread(target=self._run_training_loop, daemon=True)
         self.training_thread.start()
-        logger.info("Training thread started")
+        
+        if duration_minutes:
+            logger.info(f"Training thread started (duration: {duration_minutes} minutes)")
+        else:
+            logger.info("Training thread started")
 
     def stop_training(self):
         if self.training_active and self.trainer:
@@ -351,12 +355,21 @@ async def broadcast_loop():
         
         await asyncio.sleep(0.033) # ~30 FPS
 
+class TrainingRequest(BaseModel):
+    """Request model for training configuration."""
+    duration_minutes: Optional[float] = None
+
 @app.post("/training/start")
-def start_training():
+def start_training(request: TrainingRequest = None):
     """Start a new training session."""
     try:
-        gm.start_training()
-        return {"message": "Training started", "status": "ok"}
+        duration = request.duration_minutes if request else None
+        gm.start_training(duration_minutes=duration)
+        
+        if duration:
+            return {"message": f"Training started for {duration} minutes", "status": "ok"}
+        else:
+            return {"message": "Training started", "status": "ok"}
     except Exception as e:
         logger.error(f"Failed to start training: {e}")
         return {"message": f"Failed to start training: {e}", "status": "error"}
